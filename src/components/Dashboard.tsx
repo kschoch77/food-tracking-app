@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { db, DailyLog, MealPlan, Profile } from '../lib/db';
-import { ChevronLeft, ChevronRight, Calendar, Plus, Trash2, CheckSquare, Square, FileSpreadsheet, Sparkles, LogOut, Settings, Award } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Plus, Trash2, CheckSquare, Square, FileSpreadsheet, Sparkles, LogOut, Settings, Award, Coffee, Sun, Moon, Apple, Inbox } from 'lucide-react';
 import SearchOverlay from './SearchOverlay';
 
 interface DashboardProps {
@@ -27,6 +27,7 @@ export default function Dashboard({ user, onLogout, onNavigateToPlanner, onNavig
   const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [activeAddSlot, setActiveAddSlot] = useState<string | null>(null);
+  const [showSlotSelector, setShowSlotSelector] = useState(false);
 
   // Collapsible sections
   const [expandedSlots, setExpandedSlots] = useState<Record<string, boolean>>({
@@ -34,6 +35,7 @@ export default function Dashboard({ user, onLogout, onNavigateToPlanner, onNavig
     Lunch: true,
     Dinner: true,
     Snack: true,
+    Uncategorized: true,
   });
 
   // Portion edit state
@@ -173,7 +175,7 @@ export default function Dashboard({ user, onLogout, onNavigateToPlanner, onNavig
   const caloriesRemaining = targets.daily_calorie_target - totals.calories;
 
   // Meal slots list
-  const slots: ('Breakfast' | 'Lunch' | 'Dinner' | 'Snack')[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+  const slots: ('Breakfast' | 'Lunch' | 'Dinner' | 'Snack' | 'Uncategorized')[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Uncategorized'];
 
   // Group logs by slot
   const logsBySlot = logs.reduce((acc, log) => {
@@ -309,137 +311,129 @@ export default function Dashboard({ user, onLogout, onNavigateToPlanner, onNavig
 
       {/* Main Logs View */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 no-scrollbar">
-        {logs.length === 0 ? (
-          /* Empty State */
-          <div className="py-12 px-6 bg-slate-900/40 border border-dark-border/60 rounded-2xl text-center space-y-5">
-            <div className="w-12 h-12 bg-slate-900 border border-dark-border flex items-center justify-center rounded-xl mx-auto shadow-md">
-              <FileSpreadsheet className="w-6 h-6 text-slate-400" />
-            </div>
-            <div className="space-y-1">
-              <h4 className="font-bold text-slate-200 text-sm">Your log is empty</h4>
-              <p className="text-slate-400 text-xxs max-w-xs mx-auto">
-                No items tracked for this date. Log foods manually or apply a saved meal plan template.
-              </p>
-            </div>
+        {logs.length === 0 && (
+          /* Non-blocking Empty State / Tip Banner */
+          <div className="py-6 px-4 bg-slate-900/40 border border-dark-border/60 rounded-2xl text-center space-y-3 shrink-0">
+            <p className="text-slate-400 text-xxs max-w-xs mx-auto">
+              Your log is empty for today. Tap the "+" button below or manually add food to any category.
+            </p>
             <button
               onClick={() => setShowApplyModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-black text-xs rounded-xl cursor-pointer transition shadow-lg shadow-emerald-500/15"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-black text-xxs rounded-xl cursor-pointer transition shadow-md shadow-emerald-500/15 mx-auto"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Apply Meal Plan to Today</span>
-            </button>
-          </div>
-        ) : (
-          /* Meal Slots Map */
-          slots.map((slot) => {
-            const slotLogs = logsBySlot[slot] || [];
-            const expanded = expandedSlots[slot];
-            const slotCalories = slotLogs.reduce((sum, l) => sum + (l.is_checked ? l.calories : 0), 0);
-
-            return (
-              <div key={slot} className="bg-slate-900/60 border border-dark-border/60 rounded-xl overflow-hidden shadow">
-                {/* Collapsible header */}
-                <button
-                  onClick={() => setExpandedSlots((prev) => ({ ...prev, [slot]: !prev[slot] }))}
-                  className="w-full px-3.5 py-3 bg-slate-900 flex justify-between items-center text-left"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-xs text-slate-200">{slot}</span>
-                    <span className="text-[10px] text-slate-500 font-bold">
-                      ({slotLogs.length} {slotLogs.length === 1 ? 'item' : 'items'})
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-black text-slate-300">{Math.round(slotCalories)} kcal</span>
-                  </div>
-                </button>
-
-                {expanded && (
-                  <div className="p-3.5 space-y-3 border-t border-dark-border/30">
-                    {slotLogs.length > 0 ? (
-                      <div className="space-y-2">
-                        {slotLogs.map((log) => (
-                          <div
-                            key={log.id}
-                            className="flex justify-between items-center gap-2 py-1.5 border-b border-dark-border/20 last:border-b-0"
-                          >
-                            {/* Checkbox + Title */}
-                            <div className="flex items-center gap-2.5 max-w-[70%]">
-                              <button
-                                onClick={() => handleToggleCheck(log)}
-                                className="text-slate-400 hover:text-emerald-400 transition"
-                              >
-                                {log.is_checked ? (
-                                  <CheckSquare className="w-5 h-5 text-emerald-400" />
-                                ) : (
-                                  <Square className="w-5 h-5 text-slate-500" />
-                                )}
-                              </button>
-                              <div className="text-left min-w-0" onClick={() => handleOpenEdit(log)}>
-                                <p
-                                  className={`font-semibold text-xs text-slate-200 truncate ${
-                                    log.is_checked ? 'strike-through text-slate-500' : ''
-                                  }`}
-                                >
-                                  {log.food_name}
-                                </p>
-                                <p className="text-[9px] text-slate-400 truncate">
-                                  {log.serving_quantity} • {log.serving_unit}
-                                </p>
-                              </div>
-                            </div>
-
-                            {/* Macros & Delete */}
-                            <div className="flex items-center gap-3 shrink-0">
-                              <div className="text-right leading-tight">
-                                <p className={`text-xs font-bold ${log.is_checked ? 'text-slate-500' : 'text-slate-300'}`}>
-                                  {Math.round(log.calories)} kcal
-                                </p>
-                                <p className="text-[9px] text-slate-500">
-                                  P: {Math.round(log.protein)}g • C: {Math.round(log.carbs)}g • F: {Math.round(log.fat)}g
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteLog(log.id)}
-                                className="text-slate-500 hover:text-red-400 p-1 rounded-lg"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-slate-500 italic py-1 text-center">No foods logged</p>
-                    )}
-
-                    {/* Add Food Button */}
-                    <button
-                      onClick={() => setActiveAddSlot(slot)}
-                      className="w-full py-2 bg-slate-950 border border-dashed border-dark-border/60 hover:border-emerald-500/50 hover:bg-slate-900 rounded-xl text-[10px] text-slate-400 hover:text-slate-200 font-bold flex items-center justify-center gap-1 cursor-pointer transition"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add Food</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-
-        {/* Manual Apply Button if logs has items but user wants to apply template */}
-        {logs.length > 0 && (
-          <div className="pt-2">
-            <button
-              onClick={() => setShowApplyModal(true)}
-              className="w-full py-3 bg-slate-900 border border-dark-border/80 hover:bg-slate-850 text-slate-300 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition shadow"
-            >
-              <Sparkles className="w-4 h-4 text-orange-400" />
               <span>Apply Meal Plan Template</span>
             </button>
           </div>
         )}
+
+        {/* Meal Slots Map */}
+        {slots.map((slot) => {
+          const slotLogs = logsBySlot[slot] || [];
+          const expanded = expandedSlots[slot];
+          const slotCalories = slotLogs.reduce((sum, l) => sum + (l.is_checked ? l.calories : 0), 0);
+
+          return (
+            <div key={slot} className="bg-slate-900/60 border border-dark-border/60 rounded-xl overflow-hidden shadow">
+              {/* Collapsible header */}
+              <button
+                onClick={() => setExpandedSlots((prev) => ({ ...prev, [slot]: !prev[slot] }))}
+                className="w-full px-3.5 py-3 bg-slate-900 flex justify-between items-center text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-xs text-slate-200">{slot}</span>
+                  <span className="text-[10px] text-slate-500 font-bold">
+                    ({slotLogs.length} {slotLogs.length === 1 ? 'item' : 'items'})
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-black text-slate-300">{Math.round(slotCalories)} kcal</span>
+                </div>
+              </button>
+
+              {expanded && (
+                <div className="p-3.5 space-y-3 border-t border-dark-border/30">
+                  {slotLogs.length > 0 ? (
+                    <div className="space-y-2">
+                      {slotLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className="flex justify-between items-center gap-2 py-1.5 border-b border-dark-border/20 last:border-b-0"
+                        >
+                          {/* Checkbox + Title */}
+                          <div className="flex items-center gap-2.5 max-w-[70%]">
+                            <button
+                              onClick={() => handleToggleCheck(log)}
+                              className="text-slate-400 hover:text-emerald-400 transition"
+                            >
+                              {log.is_checked ? (
+                                <CheckSquare className="w-5 h-5 text-emerald-400" />
+                              ) : (
+                                <Square className="w-5 h-5 text-slate-500" />
+                              )}
+                            </button>
+                            <div className="text-left min-w-0" onClick={() => handleOpenEdit(log)}>
+                              <p
+                                className={`font-semibold text-xs text-slate-200 truncate ${
+                                  log.is_checked ? 'strike-through text-slate-500' : ''
+                                }`}
+                              >
+                                {log.food_name}
+                              </p>
+                              <p className="text-[9px] text-slate-400 truncate">
+                                {log.serving_quantity} • {log.serving_unit}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Macros & Delete */}
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right leading-tight">
+                              <p className={`text-xs font-bold ${log.is_checked ? 'text-slate-500' : 'text-slate-300'}`}>
+                                {Math.round(log.calories)} kcal
+                              </p>
+                              <p className="text-[9px] text-slate-500">
+                                P: {Math.round(log.protein)}g • C: {Math.round(log.carbs)}g • F: {Math.round(log.fat)}g
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteLog(log.id)}
+                              className="text-slate-500 hover:text-red-400 p-1 rounded-lg"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 italic py-1 text-center">No foods logged</p>
+                  )}
+
+                  {/* Add Food Button */}
+                  <button
+                    onClick={() => setActiveAddSlot(slot)}
+                    className="w-full py-2 bg-slate-950 border border-dashed border-dark-border/60 hover:border-emerald-500/50 hover:bg-slate-900 rounded-xl text-[10px] text-slate-400 hover:text-slate-200 font-bold flex items-center justify-center gap-1 cursor-pointer transition"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Food</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Manual Apply Button at the bottom of the list */}
+        <div className="pt-2">
+          <button
+            onClick={() => setShowApplyModal(true)}
+            className="w-full py-3 bg-slate-900 border border-dark-border/80 hover:bg-slate-850 text-slate-300 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer transition shadow"
+          >
+            <Sparkles className="w-4 h-4 text-orange-400" />
+            <span>Apply Meal Plan Template</span>
+          </button>
+        </div>
       </div>
 
       {/* ======================================================================
@@ -590,6 +584,79 @@ export default function Dashboard({ user, onLogout, onNavigateToPlanner, onNavig
                 className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-xl cursor-pointer text-center"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Action Button (FAB) */}
+      <button
+        onClick={() => setShowSlotSelector(true)}
+        className="fixed bottom-20 right-4 w-12 h-12 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/25 active:scale-95 transition cursor-pointer z-40"
+      >
+        <Plus className="w-6 h-6 stroke-[3]" />
+      </button>
+
+      {/* ======================================================================
+          SLOT SELECTOR SHEET/MODAL
+          ====================================================================== */}
+      {showSlotSelector && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
+          <div className="bg-slate-900 border border-dark-border w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="p-4 border-b border-dark-border flex items-center justify-between">
+              <div>
+                <h4 className="font-bold text-slate-200 text-xs uppercase tracking-wide">Add Food</h4>
+                <p className="font-black text-slate-100 text-sm">Select meal category</p>
+              </div>
+              <button
+                onClick={() => setShowSlotSelector(false)}
+                className="text-slate-400 hover:text-slate-200 p-1 hover:bg-slate-800 rounded-lg"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-2">
+              {[
+                { name: 'Breakfast', icon: Coffee, desc: 'Morning fuel and coffee' },
+                { name: 'Lunch', icon: Sun, desc: 'Midday meal and proteins' },
+                { name: 'Dinner', icon: Moon, desc: 'Evening meal and vegetables' },
+                { name: 'Snack', icon: Apple, desc: 'Quick bites and fruits' },
+                { name: 'Uncategorized', icon: Inbox, desc: 'Miscellaneous and other' },
+              ].map((item) => {
+                const IconComponent = item.icon;
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      setActiveAddSlot(item.name);
+                      setShowSlotSelector(false);
+                    }}
+                    className="w-full p-3 bg-slate-950 hover:bg-slate-850 border border-dark-border/40 hover:border-emerald-500/40 rounded-xl text-left flex items-center gap-3 group cursor-pointer transition"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-900 border border-dark-border/60 flex items-center justify-center text-slate-400 group-hover:text-emerald-400 transition">
+                      <IconComponent className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs text-slate-200 group-hover:text-emerald-400 transition">
+                        {item.name}
+                      </p>
+                      <p className="text-[9px] text-slate-500">
+                        {item.desc}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="p-3 bg-slate-950 border-t border-dark-border flex justify-end">
+              <button
+                onClick={() => setShowSlotSelector(false)}
+                className="px-4 py-2 bg-slate-850 hover:bg-slate-800 text-slate-200 text-xs font-semibold rounded-xl cursor-pointer"
+              >
+                Cancel
               </button>
             </div>
           </div>

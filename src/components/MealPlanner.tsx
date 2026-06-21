@@ -100,7 +100,7 @@ export default function MealPlanner({ onNavigateToDashboard, onNavigateToProfile
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 
-  const slots = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+  const slots = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Uncategorized'];
 
   return (
     <div className="flex-1 flex flex-col max-w-md mx-auto bg-slate-950 min-h-screen text-slate-100 pb-24 relative select-none">

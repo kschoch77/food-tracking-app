@@ -42,7 +42,7 @@ export interface MealPlanItem {
   protein: number;
   carbs: number;
   fat: number;
-  meal_slot: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+  meal_slot: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack' | 'Uncategorized';
 }
 
 export interface MealPlan {
@@ -57,7 +57,7 @@ export interface DailyLog {
   id: string;
   user_id: string;
   date: string; // YYYY-MM-DD
-  meal_slot: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack';
+  meal_slot: 'Breakfast' | 'Lunch' | 'Dinner' | 'Snack' | 'Uncategorized';
   food_name: string;
   serving_quantity: number;
   serving_unit: string;
